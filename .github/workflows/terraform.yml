@@ -1,0 +1,28 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.7"
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_github_token: ${{ secrets.TOKEN }}
+          TF_VAR_github_owner: ${{ secrets.OWNER }}
+          TF_VAR_identity_text: ${{ secrets.IDENTITY }}
+        run: terraform apply -auto-approve
