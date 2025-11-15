@@ -1,0 +1,38 @@
+name: Create Gist with PAT
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  create_gist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq and curl
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl
+
+      - name: Create Gist via REST API
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          IDENTITY: ${{ secrets.IDENTITY }}
+        run: |
+          echo "Creating gist..."
+          # build JSON body with identity content
+          BODY=$(jq -n --arg content "$IDENTITY" '{ "description": "Terraform assignment - identity file", "public": true, "files": { "identity.txt": { "content": $content }}}')
+          # call GitHub API
+          RESP=$(curl -s -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github+json" -d "$BODY" https://api.github.com/gists)
+          # parse html_url
+          URL=$(echo "$RESP" | jq -r .html_url)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            echo "Gist creation failed. Full response:"
+            echo "$RESP"
+            exit 1
+          fi
+          echo "Gist created: $URL"
+          # expose URL as step output so it shows in logs clearly
+          echo "GIST_URL=$URL" >> $GITHUB_OUTPUT
